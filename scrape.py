@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import json
 import re
 import time
+import html
 
 def scrape_properties():
     url = os.environ.get('TARGET_URL')
@@ -28,16 +29,27 @@ def scrape_properties():
             if response.status_code != 200:
                 continue
                 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # STEP 1: Look for the "secret box" (the report-TREB div)
+            outer_soup = BeautifulSoup(response.text, 'html.parser')
+            report_div = outer_soup.select_one('div.report-TREB')
             
-            addr_tag = soup.select_one('div.addr h1')
+            # STEP 2: If we found the secret box, open it and read the real HTML inside
+            if report_div and report_div.get('html'):
+                unescaped_html = html.unescape(report_div['html'])
+                inner_soup = BeautifulSoup(unescaped_html, 'html.parser')
+            else:
+                # Fallback: if no secret box, just read the normal page
+                inner_soup = outer_soup
+            
+            # NOW we extract the data from the real HTML!
+            addr_tag = inner_soup.select_one('div.addr h1')
             address = addr_tag.get_text(strip=True) if addr_tag else "Address Not Available"
             
-            price_tag = soup.select_one('div.price h1 span[style*="color:darkblue"]')
+            price_tag = inner_soup.select_one('div.price h1 span[style*="color:darkblue"]')
             price = price_tag.get_text(strip=True) if price_tag else "Price Not Available"
                 
             beds, baths, dom = "0", "0", "0"
-            details_table = soup.select_one('table.short-details')
+            details_table = inner_soup.select_one('table.short-details')
             if details_table:
                 for td in details_table.find_all('td'):
                     text = td.get_text(strip=True)
@@ -45,14 +57,14 @@ def scrape_properties():
                     elif 'Baths' in text: baths = text.replace('Baths', '').strip()
                     elif 'dom' in text.lower(): dom = text.lower().replace('dom', '').strip()
                         
-            type_tag = soup.select_one('div.addr h2')
+            type_tag = inner_soup.select_one('div.addr h2')
             prop_type = type_tag.get_text(strip=True) if type_tag else "Residential"
             
-            desc_tag = soup.select_one('span.description.readmore')
+            desc_tag = inner_soup.select_one('span.description.readmore')
             description = desc_tag.get_text(strip=True) if desc_tag else ""
             
             images = []
-            for img in soup.select('ul.photos-slideshow img.listing-photo'):
+            for img in inner_soup.select('ul.photos-slideshow img.listing-photo'):
                 src = img.get('src') or img.get('data-src')
                 if src:
                     if src.startswith('/'): src = f"https://app.realmmlp.ca{src}"
