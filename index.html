@@ -1,152 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTA Power of Sale & Distressed Properties</title>
+    <title>GTA Power of Sale Properties</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #0f172a; 
-            color: #f8fafc; 
-            margin: 0; 
-            padding: 20px; 
-        }
-        header { 
-            text-align: center; 
-            margin-bottom: 40px; 
-            padding: 20px;
-        }
-        h1 { 
-            font-size: 2.5rem; 
-            margin-bottom: 10px; 
-            color: #3b82f6;
-        }
-        .subtitle {
-            color: #94a3b8;
-            font-size: 1.2rem;
-        }
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-            gap: 25px; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-        }
-        .card { 
-            background: #1e293b; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            border: 1px solid #334155; 
-            transition: transform 0.2s; 
-        }
-        .card:hover { 
-            transform: translateY(-5px); 
-            border-color: #3b82f6; 
-        }
-        .card-img { 
-            width: 100%; 
-            height: 200px; 
-            object-fit: cover; 
-            background: #334155;
-        }
-        .card-body { 
-            padding: 20px; 
-        }
-        .price { 
-            color: #3b82f6; 
-            font-size: 1.5rem; 
-            font-weight: bold; 
-        }
-        .address { 
-            font-size: 1.1rem; 
-            margin: 8px 0; 
-            color: #cbd5e1; 
-        }
-        .details { 
-            display: flex; 
-            gap: 15px; 
-            color: #94a3b8; 
-            font-size: 0.9rem; 
-            margin-bottom: 15px; 
-        }
-        .type-badge { 
-            display: inline-block; 
-            background: #334155; 
-            padding: 4px 8px; 
-            border-radius: 4px; 
-            font-size: 0.8rem; 
-            color: #f8fafc; 
-            margin-bottom: 15px; 
-        }
-        .btn { 
-            display: block; 
-            width: 100%; 
-            padding: 12px; 
-            background: #3b82f6; 
-            color: white; 
-            text-align: center; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
-        }
-        .btn:hover { 
-            background: #2563eb; 
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #94a3b8;
-        }
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 40px auto; }
+        .card { background: #16213e; padding: 20px; border-radius: 10px; }
+        .price { color: #00d9ff; font-size: 24px; font-weight: bold; }
+        .btn { background: #00d9ff; color: #1a1a2e; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px; }
+        #gate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; }
+        .gate-box { background: #16213e; padding: 40px; border-radius: 10px; text-align: center; }
+        input { padding: 10px; margin: 10px; width: 300px; border-radius: 5px; border: 1px solid #00d9ff; }
     </style>
 </head>
 <body>
+    <h1>🔥 GTA Power of Sale Properties</h1>
+    <p>Exclusive distressed properties updated daily</p>
+    
+    <!-- Email Gate (TRREB Compliance) -->
+    <div id="gate">
+        <div class="gate-box">
+            <h2>Register to View Properties</h2>
+            <p>TRREB requires registration to view MLS data</p>
+            <form id="registerForm">
+                <input type="text" id="name" placeholder="Your Name" required><br>
+                <input type="email" id="email" placeholder="Your Email" required><br>
+                <input type="tel" id="phone" placeholder="Your Phone" required><br>
+                <button type="submit" class="btn">View Properties Now</button>
+            </form>
+        </div>
+    </div>
 
-    <header>
-        <h1>GTA Distressed & Power of Sale Properties</h1>
-        <p class="subtitle">Exclusive opportunities updated daily.</p>
-    </header>
-
-    <div id="loading" class="loading">Loading properties...</div>
-    <div id="property-grid" class="grid"></div>
+    <div id="loading">Loading properties...</div>
+    <div id="grid" class="grid" style="display:none;"></div>
 
     <script>
-        // Fetch the properties from the JSON file
-        fetch('properties.json')
-            .then(response => response.json())
-            .then(properties => {
-                document.getElementById('loading').style.display = 'none';
-                const grid = document.getElementById('property-grid');
-                
-                properties.forEach(prop => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    
-                    const firstImage = prop.images && prop.images.length > 0 ? prop.images[0] : '';
-                    
-                    card.innerHTML = `
-                        ${firstImage ? `<img src="${firstImage}" alt="${prop.address}" class="card-img">` : '<div class="card-img"></div>'}
-                        <div class="card-body">
-                            <div class="price">${prop.price}</div>
-                            <div class="address">${prop.address}</div>
-                            <div class="details">
-                                <span>🛏️ ${prop.beds} Beds</span>
-                                <span>🛁 ${prop.baths} Baths</span>
-                                <span>📅 ${prop.dom} DOM</span>
-                            </div>
-                            <div class="type-badge">${prop.type}</div>
-                            <a href="https://formspree.io/f/YOUR_FORM_ID" class="btn">Unlock Full Details & Photos</a>
-                        </div>
-                    `;
-                    
-                    grid.appendChild(card);
-                });
-            })
-            .catch(error => {
-                console.error('Error loading properties:', error);
-                document.getElementById('loading').innerHTML = 'Error loading properties. Please refresh the page.';
-            });
-    </script>
+        // Check if user already registered
+        if(localStorage.getItem('registered') === 'true') {
+            document.getElementById('gate').style.display = 'none';
+            loadProperties();
+        }
 
+        // Handle registration
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            
+            // Save to localStorage
+            localStorage.setItem('registered', 'true');
+            localStorage.setItem('userName', name);
+            
+            // Send to Formspree (replace YOUR_FORM_ID)
+            fetch('https://formspree.io/f/YOUR_FORM_ID', {
+                method: 'POST',
+                body: JSON.stringify({ name, email, phone, interested: 'Power of Sale Properties' }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            // Hide gate and show properties
+            document.getElementById('gate').style.display = 'none';
+            loadProperties();
+        });
+
+        // Load properties
+        function loadProperties() {
+            fetch('properties.json')
+                .then(r => r.json())
+                .then(props => {
+                    document.getElementById('loading').style.display = 'none';
+                    const grid = document.getElementById('grid');
+                    grid.style.display = 'grid';
+                    
+                    props.forEach(p => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = `
+                            <div class="price">${p.price}</div>
+                            <h3>${p.address}</h3>
+                            <p>🛏️ ${p.beds} Beds | 🛁 ${p.baths} Baths | 📅 ${p.dom} Days on Market</p>
+                            <p>${p.type}</p>
+                            <a href="mailto:your.email@example.com?subject=Interested in ${p.mls}" class="btn">Contact Me About This</a>
+                        `;
+                        grid.appendChild(card);
+                    });
+                });
+        }
+    </script>
 </body>
 </html>
