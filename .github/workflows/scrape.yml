@@ -1,6 +1,5 @@
 name: Update Property Listings
 
-# This creates the "Run Workflow" button where you can paste your link
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +11,8 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
