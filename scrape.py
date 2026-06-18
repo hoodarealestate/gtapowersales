@@ -68,3 +68,37 @@ def scrape_properties():
                         'address': address,
                         'price': price,
                         'beds': beds,
+                        'baths': baths,
+                        'dom': "0",
+                        'type': 'Residential',
+                        'description': '',
+                        'images': [],
+                        'status': 'Active'
+                    })
+                    
+                    print(f"  ✅ Added: {address} - {price}")
+                    
+                    # Only show first 5 to avoid spam
+                    if len(properties) <= 5:
+                        print(f"     Sample text: {text[:200]}...")
+        
+        print(f"\n💾 Total properties found: {len(properties)}")
+        
+        # Save to JSON file
+        if properties:
+            with open('properties.json', 'w') as f:
+                json.dump(properties, f, indent=2)
+            print(f"✅ Saved {len(properties)} properties to properties.json")
+        else:
+            print("⚠️ WARNING: No properties found to save!")
+            # Save empty array so file exists
+            with open('properties.json', 'w') as f:
+                json.dump([], f, indent=2)
+        
+    except Exception as e:
+        print(f"❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    scrape_properties()
