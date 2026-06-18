@@ -1,104 +1,76 @@
 import os
-import requests
 from bs4 import BeautifulSoup
 import json
 import re
+import html
 
 def scrape_properties():
-    url = os.environ.get('TARGET_URL')
-    print(f"🎯 Starting scraper for: {url[:50]}...")
-    
-    if not url:
-        print("❌ ERROR: No URL provided!")
+    # Check if the file you uploaded exists
+    if not os.path.exists('source.html'):
+        print("❌ source.html not found! Please upload it first.")
         return
         
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    print("📂 Reading your downloaded file...")
+    with open('source.html', 'r', encoding='utf-8') as f:
+        page_content = f.read()
+        
+    soup = BeautifulSoup(page_content, 'html.parser')
+    properties = []
     
-    try:
-        print(f"📥 Fetching page...")
-        response = requests.get(url, headers=headers, timeout=30)
-        print(f"📊 Response status: {response.status_code}")
+    # The website hides data in a special "report-TREB" box
+    report_div = soup.select_one('div.report-TREB')
+    
+    if report_div and report_div.get('html'):
+        print(" Found the secret data box!")
+        unescaped_html = html.unescape(report_div['html'])
+        inner_soup = BeautifulSoup(unescaped_html, 'html.parser')
         
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # Now we extract the data from inside that box
+        addr_tag = inner_soup.select_one('div.addr h1')
+        price_tag = inner_soup.select_one('div.price h1 span[style*="color:darkblue"]')
+        details_table = inner_soup.select_one('table.short-details')
+        type_tag = inner_soup.select_one('div.addr h2')
         
-        # Look for ANY element that might contain property data
-        all_divs = soup.find_all('div')
-        print(f"🔍 Found {len(all_divs)} div elements to check")
+        address = addr_tag.get_text(strip=True) if addr_tag else "Address Not Available"
+        price = price_tag.get_text(strip=True) if price_tag else "Price Not Available"
         
-        properties = []
-        
-        # Look for patterns that indicate property listings
-        for i, div in enumerate(all_divs):
-            text = div.get_text()
-            
-            # Look for price patterns ($XXX,XXX or $X.XXM)
-            if re.search(r'\$[\d,]+', text):
-                # This might be a property listing!
-                print(f"💰 Found potential property at div #{i}")
+        beds, baths, dom = "0", "0", "0"
+        if details_table:
+            for td in details_table.find_all('td'):
+                text = td.get_text(strip=True)
+                if 'Beds' in text: beds = text.replace('Beds', '').strip()
+                elif 'Baths' in text: baths = text.replace('Baths', '').strip()
+                elif 'dom' in text.lower(): dom = text.lower().replace('dom', '').strip()
                 
-                # Try to extract MLS number
-                mls_match = re.search(r'[A-Z]\d{8}', text)
-                mls = mls_match.group(0) if mls_match else f"prop-{i}"
-                
-                # Try to extract price
-                price_match = re.search(r'\$[\d,]+', text)
-                price = price_match.group(0) if price_match else "Price Not Available"
-                
-                # Try to extract address (look for text with comma, usually street, city)
-                lines = text.split('\n')
-                address = "Address Not Available"
-                for line in lines:
-                    line = line.strip()
-                    if ',' in line and len(line) > 10 and len(line) < 100 and '$' not in line:
-                        address = line
-                        break
-                
-                # Try to extract beds/baths
-                beds_match = re.search(r'(\d+)\s*Bed', text, re.IGNORECASE)
-                baths_match = re.search(r'(\d+)\s*Bath', text, re.IGNORECASE)
-                
-                beds = beds_match.group(1) if beds_match else "0"
-                baths = baths_match.group(1) if baths_match else "0"
-                
-                # Only add if we found at least a price
-                if price != "Price Not Available":
-                    properties.append({
-                        'id': mls.lower(),
-                        'mls': mls,
-                        'address': address,
-                        'price': price,
-                        'beds': beds,
-                        'baths': baths,
-                        'dom': "0",
-                        'type': 'Residential',
-                        'description': '',
-                        'images': [],
-                        'status': 'Active'
-                    })
-                    
-                    print(f"  ✅ Added: {address} - {price}")
-                    
-                    # Only show first 5 to avoid spam
-                    if len(properties) <= 5:
-                        print(f"     Sample text: {text[:200]}...")
+        prop_type = type_tag.get_text(strip=True) if type_tag else "Residential"
         
-        print(f"\n💾 Total properties found: {len(properties)}")
-        
-        # Save to JSON file
-        if properties:
-            with open('properties.json', 'w') as f:
-                json.dump(properties, f, indent=2)
-            print(f"✅ Saved {len(properties)} properties to properties.json")
-        else:
-            print("⚠️ WARNING: No properties found to save!")
-            # Save empty array so file exists
-            with open('properties.json', 'w') as f:
-                json.dump([], f, indent=2)
-        
-    except Exception as e:
-        print(f"❌ ERROR: {e}")
-        import traceback
-        traceback.print_exc()
+        # Since this is just one property from the file, we add it
+        # (Note: If your source.html has multiple properties, we would loop here)
+        properties.append({
+            'id': 'manual-1',
+            'mls': 'Manual',
+            'address': address,
+            'price': price,
+            'beds': beds,
+            'baths': baths,
+            'dom': dom,
+            'type': prop_type,
+            'description': '',
+            'images': [],
+            'status': 'Active'
+        })
+    else:
+        print("️ Could not find the data box. The file might be formatted differently.")
+        # Fallback: Try to find any price on the page
+        all_text = soup.get_text()
+        prices = re.findall(r'\$[\d,]+', all_text)
+        if prices:
+            print(f"Found prices in text: {prices[:5]}...")
+
+    # Save whatever we found
+    with open('properties.json', 'w') as f:
+        json.dump(properties, f, indent=2)
+    print(f"✅ Saved {len(properties)} properties from your file!")
 
 if __name__ == "__main__":
     scrape_properties()
